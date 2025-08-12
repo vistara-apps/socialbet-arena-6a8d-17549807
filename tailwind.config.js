@@ -1,4 +1,3 @@
-
 module.exports = {
   content: ['./app/**/*.{js,ts,jsx,tsx,mdx}'],
   theme: {
@@ -29,7 +28,14 @@ module.exports = {
       animation: {
         'fade-in': 'fadeIn 0.2s ease-in-out',
         'slide-up': 'slideUp 0.2s ease-in-out',
+        'slide-in-right': 'slideInRight 0.3s ease-out',
+        'slide-in-left': 'slideInLeft 0.3s ease-out',
         'pulse-glow': 'pulseGlow 2s ease-in-out infinite',
+        'shimmer': 'shimmer 2s infinite linear',
+        'bounce-subtle': 'bounce-subtle 1s ease-in-out infinite',
+        'wiggle': 'wiggle 0.5s ease-in-out',
+        'heartbeat': 'heartbeat 1.5s ease-in-out infinite',
+        'skeleton': 'skeleton 1.5s ease-in-out infinite',
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],

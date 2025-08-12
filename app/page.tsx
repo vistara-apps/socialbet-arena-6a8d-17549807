@@ -1,4 +1,3 @@
-
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
@@ -16,6 +15,8 @@ import { CreateBetModal } from './components/CreateBetModal'
 import { MyBetsSection } from './components/MyBetsSection'
 import { MarketTicker } from './components/MarketTicker'
 import { UserAvatar } from './components/UserAvatar'
+import { BetListSkeleton, LoadingSpinner } from './components/LoadingStates'
+import { NoBetsEmptyState, NoMyBetsEmptyState, ErrorState } from './components/EmptyStates'
 import { Plus, TrendingUp, Trophy, User } from 'lucide-react'
 
 type Bet = {
@@ -35,13 +36,15 @@ export default function SocialBetArena() {
   const [activeTab, setActiveTab] = useState<'browse' | 'my-bets'>('browse')
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [selectedBet, setSelectedBet] = useState<Bet | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const addFrame = useAddFrame()
   const openUrl = useOpenUrl()
   const close = useClose()
   const viewProfile = useViewProfile()
   const sendNotification = useNotification()
 
-  // Mock data for demo
+  // Enhanced mock data for demo
   const [activeBets] = useState<Bet[]>([
     {
       betId: '1',
@@ -51,7 +54,21 @@ export default function SocialBetArena() {
       stakeAmount: 5,
       potentialPayout: 12,
       currentParticipants: 23,
-      status: 'active'
+      status: 'active',
+      creator: {
+        name: 'CryptoSage',
+        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=CryptoSage',
+        reputation: 87,
+        verified: true
+      },
+      isHot: true,
+      participantAvatars: [
+        'https://api.dicebear.com/7.x/avataaars/svg?seed=user1',
+        'https://api.dicebear.com/7.x/avataaars/svg?seed=user2',
+        'https://api.dicebear.com/7.x/avataaars/svg?seed=user3',
+        'https://api.dicebear.com/7.x/avataaars/svg?seed=user4',
+        'https://api.dicebear.com/7.x/avataaars/svg?seed=user5'
+      ]
     },
     {
       betId: '2',
@@ -61,17 +78,38 @@ export default function SocialBetArena() {
       stakeAmount: 10,
       potentialPayout: 25,
       currentParticipants: 8,
-      status: 'active'
+      status: 'active',
+      creator: {
+        name: 'DeFiAnalyst',
+        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=DeFiAnalyst',
+        reputation: 72,
+        verified: false
+      },
+      participantAvatars: [
+        'https://api.dicebear.com/7.x/avataaars/svg?seed=defi1',
+        'https://api.dicebear.com/7.x/avataaars/svg?seed=defi2',
+        'https://api.dicebear.com/7.x/avataaars/svg?seed=defi3'
+      ]
     },
     {
       betId: '3',
       description: 'Farcaster daily active users hit 100k?',
       outcomeTarget: '100k DAU this week',
-      deadline: '2024-01-20T23:59:59Z',
+      deadline: '2024-01-13T23:59:59Z', // Made this closer to demonstrate urgency
       stakeAmount: 3,
       potentialPayout: 8,
       currentParticipants: 45,
-      status: 'active'
+      status: 'active',
+      creator: {
+        name: 'SocialMetrics',
+        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=SocialMetrics',
+        reputation: 94,
+        verified: true
+      },
+      participantAvatars: [
+        'https://api.dicebear.com/7.x/avataaars/svg?seed=social1',
+        'https://api.dicebear.com/7.x/avataaars/svg?seed=social2'
+      ]
     }
   ])
 
@@ -200,15 +238,31 @@ export default function SocialBetArena() {
         </div>
 
         {/* Content */}
-        {activeTab === 'browse' ? (
+        {error ? (
+          <ErrorState 
+            title="Unable to Load Bets"
+            description={error}
+            onRetry={() => {
+              setError(null)
+              setIsLoading(true)
+              // Simulate retry
+              setTimeout(() => setIsLoading(false), 1000)
+            }}
+          />
+        ) : activeTab === 'browse' ? (
           <div className="space-y-4">
             {/* Create Bet Button */}
             <button
               onClick={handleCreateBet}
               className="w-full btn-accent flex items-center justify-center space-x-2 animate-fade-in"
+              disabled={isLoading}
             >
-              <Plus className="w-5 h-5" />
-              <span>Create New Bet</span>
+              {isLoading ? (
+                <LoadingSpinner size="sm" />
+              ) : (
+                <Plus className="w-5 h-5" />
+              )}
+              <span>{isLoading ? 'Loading...' : 'Create New Bet'}</span>
             </button>
 
             {/* Active Bets */}
@@ -216,25 +270,40 @@ export default function SocialBetArena() {
               <h2 className="text-lg font-bold text-text flex items-center space-x-2">
                 <Trophy className="w-5 h-5 text-primary" />
                 <span>Active Predictions</span>
+                {isLoading && <LoadingSpinner size="sm" />}
               </h2>
               
-              {activeBets.map((bet, index) => (
-                <div
-                  key={bet.betId}
-                  className="animate-fade-in"
-                  style={{ animationDelay: `${index * 100}ms` }}
-                >
-                  <BetCard
-                    bet={bet}
-                    onJoin={handleJoinBet}
-                    isSelected={selectedBet?.betId === bet.betId}
-                  />
-                </div>
-              ))}
+              {isLoading ? (
+                <BetListSkeleton count={3} />
+              ) : activeBets.length === 0 ? (
+                <NoBetsEmptyState onCreateBet={handleCreateBet} />
+              ) : (
+                activeBets.map((bet, index) => (
+                  <div
+                    key={bet.betId}
+                    className="animate-fade-in"
+                    style={{ animationDelay: `${index * 100}ms` }}
+                  >
+                    <BetCard
+                      bet={bet}
+                      onJoin={handleJoinBet}
+                      isSelected={selectedBet?.betId === bet.betId}
+                    />
+                  </div>
+                ))
+              )}
             </div>
           </div>
         ) : (
-          <MyBetsSection bets={myBets} />
+          <div className="space-y-4">
+            {isLoading ? (
+              <BetListSkeleton count={2} />
+            ) : myBets.length === 0 ? (
+              <NoMyBetsEmptyState onBrowseBets={() => setActiveTab('browse')} />
+            ) : (
+              <MyBetsSection bets={myBets} />
+            )}
+          </div>
         )}
 
         {/* Footer */}
