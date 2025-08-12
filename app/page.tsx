@@ -1,4 +1,3 @@
-
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
@@ -11,6 +10,7 @@ import {
   usePrimaryButton,
   useNotification,
 } from '@coinbase/onchainkit/minikit'
+import { usePayments } from './hooks/usePayments'
 import { BetCard } from './components/BetCard'
 import { CreateBetModal } from './components/CreateBetModal'
 import { MyBetsSection } from './components/MyBetsSection'
@@ -40,6 +40,18 @@ export default function SocialBetArena() {
   const close = useClose()
   const viewProfile = useViewProfile()
   const sendNotification = useNotification()
+  
+  // x402 payment integration
+  const { 
+    isInitialized: isPaymentReady, 
+    isProcessing: isPaymentProcessing, 
+    error: paymentError,
+    joinBet: processPayment,
+    createBet: processCreateBet,
+    testPayment: processTestPayment,
+    clearError,
+    getWalletAddress 
+  } = usePayments()
 
   // Mock data for demo
   const [activeBets] = useState<Bet[]>([
@@ -108,9 +120,12 @@ export default function SocialBetArena() {
 
   const handleJoinBet = useCallback((bet: Bet) => {
     setSelectedBet(bet)
-    // In a real app, this would trigger wallet connection and transaction
-    console.log('Joining bet:', bet.betId)
-  }, [])
+    
+    // Clear any previous payment errors
+    if (paymentError) {
+      clearError()
+    }
+  }, [paymentError, clearError])
 
   const handleCreateBet = useCallback(() => {
     setShowCreateModal(true)
@@ -123,18 +138,53 @@ export default function SocialBetArena() {
   // Primary button for joining selected bet
   usePrimaryButton(
     { 
-      text: selectedBet ? `Bet ${selectedBet.stakeAmount} USDC` : 'Select a Bet',
-      disabled: !selectedBet 
+      text: selectedBet 
+        ? isPaymentProcessing 
+          ? 'Processing...' 
+          : `Bet ${selectedBet.stakeAmount} USDC`
+        : !isPaymentReady 
+          ? 'Connect Wallet' 
+          : 'Select a Bet',
+      disabled: !selectedBet || isPaymentProcessing || !isPaymentReady
     },
-    () => {
-      if (selectedBet) {
-        // Handle bet joining logic
-        console.log('Processing bet for:', selectedBet.betId)
-        sendNotification({
-          title: 'Bet Placed! 🎰',
-          body: `Your ${selectedBet.stakeAmount} USDC bet is active!`
-        })
-        setSelectedBet(null)
+    async () => {
+      if (selectedBet && isPaymentReady) {
+        try {
+          const walletAddress = getWalletAddress()
+          if (!walletAddress) {
+            sendNotification({
+              title: 'Wallet Error ❌',
+              body: 'Please connect your wallet to place bets'
+            })
+            return
+          }
+
+          // Process payment via x402
+          const result = await processPayment({
+            betId: selectedBet.betId,
+            amount: selectedBet.stakeAmount,
+            participantAddress: walletAddress,
+          })
+
+          if (result.success) {
+            sendNotification({
+              title: 'Bet Placed! 🎰',
+              body: `Your ${selectedBet.stakeAmount} USDC bet is active!`
+            })
+            setSelectedBet(null)
+          } else {
+            sendNotification({
+              title: 'Payment Failed ❌',
+              body: result.error || 'Unable to process payment'
+            })
+          }
+        } catch (error) {
+          console.error('Bet placement failed:', error)
+          sendNotification({
+            title: 'Error ❌',
+            body: 'Failed to place bet. Please try again.'
+          })
+        }
       }
     }
   )
@@ -174,6 +224,56 @@ export default function SocialBetArena() {
 
         {/* Market Ticker */}
         <MarketTicker />
+
+        {/* Payment Status */}
+        {paymentError && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-center space-x-2">
+              <span className="text-red-600 text-sm font-medium">Payment Error:</span>
+              <span className="text-red-700 text-sm">{paymentError}</span>
+              <button
+                onClick={clearError}
+                className="text-red-600 hover:text-red-800 text-sm underline"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        )}
+
+        {!isPaymentReady && (
+          <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div className="flex items-center space-x-2">
+              <span className="text-yellow-600 text-sm font-medium">⚠️ Wallet not connected</span>
+              <span className="text-yellow-700 text-sm">Connect your wallet to place bets</span>
+            </div>
+          </div>
+        )}
+
+        {/* Test Payment Button (Development) */}
+        {isPaymentReady && process.env.NODE_ENV === 'development' && (
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-blue-600 text-sm font-medium">🧪 Development Mode</span>
+                <p className="text-blue-700 text-sm">Test x402 payment flow</p>
+              </div>
+              <button
+                onClick={async () => {
+                  const result = await processTestPayment(1)
+                  sendNotification({
+                    title: result.success ? 'Test Payment Success! ✅' : 'Test Payment Failed ❌',
+                    body: result.success ? 'x402 flow is working!' : result.error || 'Payment failed'
+                  })
+                }}
+                disabled={isPaymentProcessing}
+                className="btn-secondary text-sm px-3 py-2"
+              >
+                {isPaymentProcessing ? 'Testing...' : 'Test Payment'}
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Navigation Tabs */}
         <div className="flex space-x-1 mb-6 bg-surface rounded-lg p-1 border border-border">
@@ -228,6 +328,7 @@ export default function SocialBetArena() {
                     bet={bet}
                     onJoin={handleJoinBet}
                     isSelected={selectedBet?.betId === bet.betId}
+                    isProcessing={isPaymentProcessing && selectedBet?.betId === bet.betId}
                   />
                 </div>
               ))}
@@ -252,13 +353,42 @@ export default function SocialBetArena() {
           <CreateBetModal
             isOpen={showCreateModal}
             onClose={() => setShowCreateModal(false)}
-            onSubmit={(betData) => {
-              console.log('Creating bet:', betData)
-              setShowCreateModal(false)
-              sendNotification({
-                title: 'Bet Created! 🚀',
-                body: 'Your prediction is now live for others to join!'
-              })
+            onSubmit={async (betData) => {
+              try {
+                const walletAddress = getWalletAddress()
+                if (!walletAddress) {
+                  sendNotification({
+                    title: 'Wallet Error ❌',
+                    body: 'Please connect your wallet to create bets'
+                  })
+                  return
+                }
+
+                // Process bet creation payment via x402
+                const result = await processCreateBet({
+                  ...betData,
+                  creatorAddress: walletAddress,
+                })
+
+                if (result.success) {
+                  setShowCreateModal(false)
+                  sendNotification({
+                    title: 'Bet Created! 🚀',
+                    body: 'Your prediction is now live for others to join!'
+                  })
+                } else {
+                  sendNotification({
+                    title: 'Creation Failed ❌',
+                    body: result.error || 'Unable to create bet'
+                  })
+                }
+              } catch (error) {
+                console.error('Bet creation failed:', error)
+                sendNotification({
+                  title: 'Error ❌',
+                  body: 'Failed to create bet. Please try again.'
+                })
+              }
             }}
           />
         )}

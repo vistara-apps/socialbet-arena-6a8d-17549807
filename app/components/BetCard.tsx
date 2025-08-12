@@ -1,4 +1,3 @@
-
 'use client'
 
 import { Clock, Users, DollarSign, Target } from 'lucide-react'
@@ -19,9 +18,10 @@ interface BetCardProps {
   bet: Bet
   onJoin: (bet: Bet) => void
   isSelected?: boolean
+  isProcessing?: boolean
 }
 
-export function BetCard({ bet, onJoin, isSelected = false }: BetCardProps) {
+export function BetCard({ bet, onJoin, isSelected = false, isProcessing = false }: BetCardProps) {
   const timeUntilDeadline = () => {
     const deadline = new Date(bet.deadline)
     const now = new Date()
@@ -113,7 +113,7 @@ export function BetCard({ bet, onJoin, isSelected = false }: BetCardProps) {
           </div>
           
           <div className="text-sm font-bold text-accent">
-            Win {bet.potentialPayout} USDC
+            {isProcessing && isSelected ? 'Processing...' : `Win ${bet.potentialPayout} USDC`}
           </div>
         </div>
       )}
