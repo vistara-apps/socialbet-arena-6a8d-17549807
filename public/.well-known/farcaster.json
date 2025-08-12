@@ -10,14 +10,14 @@
     "subtitle": "Built with Zara",
     "description": "SocialBet Arena is a Base Mini App built with Zara.",
     "iconUrl": "https://0co.to/images/zara-2.png",
-    "homeUrl": "https://6a8dfdad-fbfd-4507-b578-20af8781cc3a.vistara.dev",
-    "splashImageUrl": "https://dummyimage.com/200x200/0a0b0d/ffffff.png&text=Splash",
+    "homeUrl": "https://6a8dfdadfbfd4507b57820af8781cc3a-775g-7cr2o1alu-vistara.vercel.app",
+    "splashImageUrl": "https://6a8dfdadfbfd4507b57820af8781cc3a-775g-7cr2o1alu-vistara.vercel.app/splash.png",
     "splashBackgroundColor": "#000000",
-    "heroImageUrl": "https://dummyimage.com/1200x628/0a0b0d/ffffff.png&text=Hero",
+    "heroImageUrl": "https://6a8dfdadfbfd4507b57820af8781cc3a-775g-7cr2o1alu-vistara.vercel.app/image.png",
     "tagline": "SocialBet Arena",
     "screenshotUrls": [
-      "https://dummyimage.com/1200x628/0a0b0d/ffffff.png&text=Shot1",
-      "https://dummyimage.com/1200x628/0a0b0d/ffffff.png&text=Shot2"
+      "https://6a8dfdadfbfd4507b57820af8781cc3a-775g-7cr2o1alu-vistara.vercel.app/screenshot.png",
+      "https://6a8dfdadfbfd4507b57820af8781cc3a-775g-7cr2o1alu-vistara.vercel.app/screenshot.png"
     ],
     "primaryCategory": "social",
     "tags": [
@@ -25,6 +25,6 @@
       "miniapp",
       "onchainkit"
     ],
-    "webhookUrl": "https://6a8dfdad-fbfd-4507-b578-20af8781cc3a.vistara.dev/api/webhook"
+    "webhookUrl": "https://6a8dfdadfbfd4507b57820af8781cc3a-775g-7cr2o1alu-vistara.vercel.app/api/webhook"
   }
 }
